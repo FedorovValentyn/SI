@@ -1,0 +1,104 @@
+/* App.css */
+
+/* Загальні стилі для всього проєкту */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+}
+
+h1, h2, h3 {
+  color: #333;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+a:hover {
+  color: #007bff;
+}
+
+/* Загальний контейнер для всіх сторінок */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 80vh; /* Гарантуємо мінімальну висоту контейнера */
+}
+
+/* Навбар */
+.navbar {
+  background-color: #007bff;
+  padding: 15px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+.navbar a {
+  color: white;
+  font-size: 16px;
+  margin: 0 15px;
+}
+
+.navbar a:hover {
+  color: #ffdd57;
+}
+
+/* Стилі для кнопок загальні */
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* Футер */
+footer {
+  text-align: center;
+  padding: 20px 0;
+  background-color: #007bff;
+  color: white;
+  margin-top: 50px;
+  width: 100%;
+}
+
+footer p {
+  font-size: 14px;
+}
+
+/* Окремі сторінки */
+.page-heading {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #333;
+}
