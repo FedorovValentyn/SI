@@ -102,3 +102,30 @@ footer p {
   margin-bottom: 20px;
   color: #333;
 }
+
+
+.navbar {
+  position: sticky;
+  top: 0;
+  background-color: #343333; /* Чисто білий фон */
+  padding: 10px 20px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Тінь, щоб не зливалося з фоном */
+  z-index: 1000; /* Щоб завжди був зверху */
+}
+
+.nav-link {
+  color: #333333; /* Темно-сірий текст — гарно видно */
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 18px;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #007BFF; /* При наведенні — приємний синій */
+  text-decoration: underline;
+}
+

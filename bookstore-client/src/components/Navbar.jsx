@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
-
+import '/src/App.css';
 function Navbar() {
     return (
-        <nav style={{ backgroundColor: '#f2f2f2', padding: '10px' }}>
-            <Link to="/" style={{ margin: '10px' }}>Про книгарню</Link>
-            <Link to="/profile" style={{ margin: '10px' }}>Особистий кабінет</Link>
-            <Link to="/books" style={{ margin: '10px' }}>Вибір книг</Link>
-            <Link to="/recommendations" style={{ margin: '10px' }}>Підбірка книги за вподобанням</Link>
+        <nav className="navbar">
+            <Link className="nav-link" to="/">Про книгарню</Link>
+            <Link className="nav-link" to="/profile">Особистий кабінет</Link>
+            <Link className="nav-link" to="/books">Вибір книг</Link>
+            <Link className="nav-link" to="/recommendations">Підбірка книги за вподобанням</Link>
         </nav>
     );
 }

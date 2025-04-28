@@ -11,85 +11,58 @@
     margin-top: 20px;
 }
 
-/* одна картка */
 .single-book {
     width: 280px;
     height: 400px;
-    perspective: 1000px; /* Для ефекту глибини */
-    transition: transform 0.6s ease, box-shadow 0.3s ease; /* Додаємо перехід для тіні */
+    perspective: 1000px;
 }
 
-.single-book:hover {
-    transform: scale(1.05); /* Збільшуємо картку при наведенні */
-}
-
-/* внутрішня частина */
 .single-book-inner {
     width: 100%;
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.6s ease; /* Плавне перевертання */
+    transition: transform 0.6s ease;
 }
 
-/* тільки якщо flipped */
 .single-book-inner.flipped {
-    transform: rotateY(180deg); /* Перевертаємо картку */
+    transform: rotateY(180deg);
 }
 
-/* передня сторона */
 .single-book-front, .single-book-back {
     position: absolute;
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
     border-radius: 10px;
+    overflow: hidden;
 }
 
-/* перед */
 .single-book-front {
-    background: #fff;
+    background: #ffffff;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Тінь для передньої частини */
-    transition: box-shadow 0.3s ease; /* Перехід тіні */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-.single-book-front:hover {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Збільшення тіні при наведенні */
-}
-
-/* зад */
 .single-book-back {
     background: #f4f4f4;
-    transform: rotateY(180deg); /* Перевертаємо зворотну сторону */
+    transform: rotateY(180deg);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Тінь для задньої частини */
-    transition: box-shadow 0.3s ease; /* Перехід тіні */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-.single-book-back:hover {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Збільшення тіні на зворотній частині */
-}
-
-/* Зображення книжки */
 .book-thumbnail {
     width: 100%;
     height: 200px;
     object-fit: cover;
-    transition: transform 0.3s ease; /* Додаємо перехід для зображення */
 }
 
-.book-thumbnail:hover {
-    transform: scale(1.05); /* М'яке збільшення зображення при наведенні */
-}
-
-/* Кнопки */
 .btn-buy, .btn-close {
     margin-top: 10px;
     padding: 10px;
@@ -100,9 +73,9 @@
     cursor: pointer;
     font-size: 16px;
     border-radius: 5px;
-    transition: background-color 0.3s ease; /* Перехід для кнопки */
+    transition: background-color 0.3s ease;
 }
 
 .btn-buy:hover, .btn-close:hover {
-    background-color: #0056b3; /* Зміна кольору при наведенні */
+    background-color: #0056b3;
 }
