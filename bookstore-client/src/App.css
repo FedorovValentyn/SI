@@ -35,7 +35,7 @@ a:hover {
 .app-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 80px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -46,15 +46,27 @@ a:hover {
 
 /* Навбар */
 .navbar {
-  background-color: #007bff;
-  padding: 15px;
+  position: fixed;  /* Фіксувати навбар вгорі */
+  top: 10%;  /* Встановлюємо відступ від верхньої частини — 10% від висоти екрану */
+  left: 50%;  /* Центруємо навбар */
+  transform: translateX(-50%);  /* Переміщаємо на 50% ширини назад, щоб центр був у середині */
+  background-color: #343333; /* Чисто білий фон */
+  padding: 10px 20px;
   display: flex;
-  justify-content: space-around;
-  align-items: center;
-  border-radius: 8px;
-  margin-bottom: 30px;
-  width: 100%;
+  justify-content: center;
+  gap: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Тінь, щоб не зливалося з фоном */
+  z-index: 1000; /* Щоб завжди був зверху */
+  width: 80%;  /* Ширина навбару на 80% від екрану */
+  border-radius: 15px; /* Заокруглюємо кути */
 }
+
+/* Оновлення для контейнера сторінки */
+.app-container {
+  margin-top: 20%; /* Відступ для вмісту, щоб не перекривався з навбаром */
+}
+
+
 
 .navbar a {
   color: white;
@@ -105,7 +117,7 @@ footer p {
 
 
 .navbar {
-  position: sticky;
+  position: fixed;
   top: 0;
   background-color: #343333; /* Чисто білий фон */
   padding: 10px 20px;
