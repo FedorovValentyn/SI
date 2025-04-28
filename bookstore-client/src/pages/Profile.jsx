@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
-// Створюємо екземпляр axios з базовими налаштуваннями
 const api = axios.create({
     baseURL: "http://localhost:5000/api",
     headers: {
@@ -17,16 +16,56 @@ function Profile() {
         firstName: "",
         lastName: "",
         phone: "",
-        address: ""
+        address: "",
     });
     const [message, setMessage] = useState({ text: "", type: "" });
     const [isLoading, setIsLoading] = useState(false);
+    const [profileData, setProfileData] = useState(null);
+    const [orders, setOrders] = useState([]);
+
+    const token = localStorage.getItem("token");
+
+    useEffect(() => {
+        if (token) {
+            const fetchProfile = async () => {
+                try {
+                    const response = await api.get("/profile", {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                    setProfileData(response.data);
+                } catch (error) {
+                    console.error("Помилка завантаження профілю:", error);
+                    setMessage({ text: "Не вдалося завантажити профіль", type: "error" });
+                }
+            };
+
+            const fetchOrders = async () => {
+                try {
+                    const response = await api.get("/orders", {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                    setOrders(response.data);
+                } catch (error) {
+                    console.error("Помилка завантаження історії замовлень:", error.response ? error.response.data : error);
+                    setMessage({ text: "Не вдалося завантажити історію замовлень", type: "error" });
+                }
+            };
+
+
+            fetchProfile();
+            fetchOrders();
+        }
+    }, [token]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
     };
 
@@ -46,27 +85,18 @@ function Profile() {
             setMessage({ text: response.data.message, type: "success" });
             if (response.data.token) {
                 localStorage.setItem("token", response.data.token);
-                // Перенаправлення на головну сторінку після успішного входу
-                window.location.href = "/";
+                window.location.href = "/profile";
             }
         } catch (error) {
             if (error.response) {
-                // Сервер відповів зі статусом, що не входить у 2xx
                 setMessage({
                     text: error.response.data.error || "Сталася помилка",
-                    type: "error"
-                });
-            } else if (error.request) {
-                // Запит був зроблений, але не отримано відповіді
-                setMessage({
-                    text: "Не вдалося отримати відповідь від сервера",
-                    type: "error"
+                    type: "error",
                 });
             } else {
-                // Щось сталося під час налаштування запиту
                 setMessage({
                     text: "Помилка при налаштуванні запиту",
-                    type: "error"
+                    type: "error",
                 });
             }
         } finally {
@@ -74,91 +104,137 @@ function Profile() {
         }
     };
 
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        setProfileData(null);
+        setOrders([]);
+        window.location.href = "/profile";
+    };
+
     return (
         <div className="auth-container">
-            <h1>{isLogin ? "Вхід" : "Реєстрація"}</h1>
+            {profileData ? (
+                <div className="profile-info">
+                    <h2>Ваш профіль</h2>
+                    <p><strong>Ім'я:</strong> {profileData.firstName} {profileData.lastName}</p>
+                    <p><strong>Email:</strong> {profileData.email}</p>
+                    <p><strong>Телефон:</strong> {profileData.phone}</p>
+                    <p><strong>Адреса доставки:</strong> {profileData.deliveryAddress}</p>
 
-            {message.text && (
-                <div className={`message ${message.type}`}>
-                    {message.text}
+                    <h3>Історія замовлень</h3>
+                    {orders.length > 0 ? (
+                        <table className="orders-table">
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Дата</th>
+                                <th>Сума</th>
+                                <th>Статус</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {orders.map((order, index) => (
+                                <tr key={order.id}>
+                                    <td>{index + 1}</td>
+                                    <td>{new Date(order.date).toLocaleDateString()}</td>
+                                    <td>{order.total} грн</td>
+                                    <td>{order.status}</td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <p>У вас ще немає замовлень.</p>
+                    )}
+
+                    <button onClick={handleLogout} className="logout-btn">
+                        Вийти
+                    </button>
                 </div>
+            ) : (
+                <>
+                    <h1>{isLogin ? "Вхід" : "Реєстрація"}</h1>
+
+                    {message.text && (
+                        <div className={`message ${message.type}`}>
+                            {message.text}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit}>
+                        {!isLogin && (
+                            <>
+                                <input
+                                    type="text"
+                                    name="firstName"
+                                    placeholder="Ім'я"
+                                    value={formData.firstName}
+                                    onChange={handleChange}
+                                    required
+                                />
+                                <input
+                                    type="text"
+                                    name="lastName"
+                                    placeholder="Прізвище"
+                                    value={formData.lastName}
+                                    onChange={handleChange}
+                                    required
+                                />
+                                <input
+                                    type="tel"
+                                    name="phone"
+                                    placeholder="Телефон"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    required
+                                />
+                                <input
+                                    type="text"
+                                    name="address"
+                                    placeholder="Адреса доставки"
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </>
+                        )}
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder="Email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                        />
+                        <input
+                            type="password"
+                            name="password"
+                            placeholder="Пароль"
+                            value={formData.password}
+                            onChange={handleChange}
+                            required
+                            minLength={6}
+                        />
+                        <button
+                            type="submit"
+                            className="submit-btn"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? "Завантаження..." : isLogin ? "Увійти" : "Зареєструватися"}
+                        </button>
+                    </form>
+                    <button
+                        onClick={() => {
+                            setIsLogin(!isLogin);
+                            setMessage({ text: "", type: "" });
+                        }}
+                        className="switch-btn"
+                        disabled={isLoading}
+                    >
+                        {isLogin ? "Ще не маєте акаунту? Зареєструватися" : "Вже маєте акаунт? Увійти"}
+                    </button>
+                </>
             )}
-
-            <form onSubmit={handleSubmit}>
-                {!isLogin && (
-                    <>
-                        <input
-                            type="text"
-                            name="firstName"
-                            placeholder="Ім'я"
-                            value={formData.firstName}
-                            onChange={handleChange}
-                            required
-                        />
-                        <input
-                            type="text"
-                            name="lastName"
-                            placeholder="Прізвище"
-                            value={formData.lastName}
-                            onChange={handleChange}
-                            required
-                        />
-                        <input
-                            type="tel"
-                            name="phone"
-                            placeholder="Телефон"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            required
-                        />
-                        <input
-                            type="text"
-                            name="address"
-                            placeholder="Адреса доставки"
-                            value={formData.address}
-                            onChange={handleChange}
-                            required
-                        />
-                    </>
-                )}
-
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                />
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Пароль"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    minLength={6}
-                />
-
-                <button
-                    type="submit"
-                    className="submit-btn"
-                    disabled={isLoading}
-                >
-                    {isLoading ? "Завантаження..." : (isLogin ? "Увійти" : "Зареєструватися")}
-                </button>
-            </form>
-
-            <button
-                onClick={() => {
-                    setIsLogin(!isLogin);
-                    setMessage({ text: "", type: "" });
-                }}
-                className="switch-btn"
-                disabled={isLoading}
-            >
-                {isLogin ? "Ще не маєте акаунту? Зареєструватися" : "Вже маєте акаунт? Увійти"}
-            </button>
         </div>
     );
 }
