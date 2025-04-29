@@ -89,9 +89,9 @@ app.post('/api/orders', verifyToken, async (req, res) => {
         }
 
         const [result] = await pool.query(
-            `INSERT INTO orders (user_id, product_id, quantity, total_price)
-             VALUES (?, ?, ?, ?)`,
-            [userId, productId, quantity, totalPrice]
+            `INSERT INTO orders (user_id, product_id, quantity)
+             VALUES (?, ?, ?)`,
+            [userId, productId, quantity]
         );
 
         await pool.query(

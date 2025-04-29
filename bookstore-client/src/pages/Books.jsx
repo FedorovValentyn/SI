@@ -8,14 +8,14 @@ function Books() {
     const [flippedId, setFlippedId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOption, setSortOption] = useState('');
-    const [userId, setUserId] = useState(null); // Додано для збереження ідентифікатора користувача
+    const [isOrdering, setIsOrdering] = useState(false);
 
     useEffect(() => {
         axios.get('http://localhost:5000/api/products')
             .then(response => {
                 const formattedProducts = response.data.map(product => ({
                     ...product,
-                    published_year: parseInt(product.published_year, 10), // Convert published_year string to integer year
+                    published_year: parseInt(product.published_year, 10),
                 }));
                 setProducts(formattedProducts);
                 setFilteredProducts(formattedProducts);
@@ -31,7 +31,7 @@ function Books() {
         if (sortOption === 'genre') {
             filtered = filtered.sort((a, b) => (a.categories || '').localeCompare(b.categories || ''));
         } else if (sortOption === 'date') {
-            filtered = filtered.sort((a, b) => b.published_year - a.published_year); // Sort by newest year first
+            filtered = filtered.sort((a, b) => b.published_year - a.published_year);
         } else if (sortOption === 'alphabet') {
             filtered = filtered.sort((a, b) => a.title.localeCompare(b.title));
         }
@@ -43,15 +43,31 @@ function Books() {
         setFlippedId(prevId => (prevId === id ? null : id));
     };
 
-
-    const handleBuy = async (productId, quantity, totalPrice) => {
-        const token = localStorage.getItem('token'); // Отримуємо токен користувача
+    const handleBuy = async (productId, price) => {
+        const token = localStorage.getItem('token');
 
         if (!token) {
-            alert('Ви не авторизовані!');
+            alert('Будь ласка, увійдіть в систему, щоб зробити замовлення');
             return;
         }
 
+        const quantityInput = prompt('Введіть кількість:', '1');
+        if (!quantityInput) return;
+
+        const quantity = parseInt(quantityInput);
+        if (isNaN(quantity)) {
+            alert('Будь ласка, введіть коректне число');
+            return;
+        }
+
+        if (quantity < 1) {
+            alert('Мінімальна кількість - 1');
+            return;
+        }
+
+        const totalPrice = quantity * price;
+
+        setIsOrdering(true);
         try {
             const response = await axios.post(
                 'http://localhost:5000/api/orders',
@@ -66,21 +82,15 @@ function Books() {
                     }
                 }
             );
-            console.log('Order created:', response.data);
-            alert('Замовлення успішно оформлено!');
+
+            alert(`Замовлення #${response.data.orderId} успішно оформлено!`);
         } catch (error) {
-            console.error('Error creating order:', error);
-            if (error.response) {
-                console.error('Response error:', error.response.data);
-                alert(`Помилка: ${error.response.data.error}`);
-            } else {
-                alert('Помилка при оформленні замовлення');
-            }
+            console.error('Помилка при оформленні замовлення:', error);
+            alert(error.response?.data?.error || 'Сталася помилка при оформленні замовлення');
+        } finally {
+            setIsOrdering(false);
         }
     };
-
-
-
 
     return (
         <div className="books-container">
@@ -126,12 +136,13 @@ function Books() {
                                     <p><strong>Ціна: {product.price} грн</strong></p>
                                     <button
                                         className="btn-buy"
+                                        disabled={isOrdering}
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handleBuy(product.id, 1, product.price);
+                                            handleBuy(product.id, product.price);
                                         }}
                                     >
-                                        Купити
+                                        {isOrdering ? 'Обробка...' : 'Купити'}
                                     </button>
                                 </div>
                                 <div className="single-book-back">
