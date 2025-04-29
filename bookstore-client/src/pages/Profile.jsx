@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import './Profile.css'
 
 const api = axios.create({
     baseURL: "http://localhost:5000/api",
@@ -50,11 +51,16 @@ function Profile() {
                     });
                     setOrders(response.data);
                 } catch (error) {
-                    console.error("Помилка завантаження історії замовлень:", error.response ? error.response.data : error);
-                    setMessage({ text: "Не вдалося завантажити історію замовлень", type: "error" });
+                    console.error(
+                        "Помилка завантаження історії замовлень:",
+                        error.response ? error.response.data : error
+                    );
+                    setMessage({
+                        text: "Не вдалося завантажити історію замовлень",
+                        type: "error",
+                    });
                 }
             };
-
 
             fetchProfile();
             fetchOrders();
@@ -110,6 +116,9 @@ function Profile() {
         setOrders([]);
         window.location.href = "/profile";
     };
+    console.log("Profile data:", profileData);
+    console.log("Orders:", orders);
+
 
     return (
         <div className="auth-container">
@@ -127,21 +136,26 @@ function Profile() {
                             <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Дата</th>
+                                <th>Назва товару</th>
+                                <th>Кількість</th>
+                                <th>Ціна</th>
                                 <th>Сума</th>
-                                <th>Статус</th>
+                                <th>Дата</th>
                             </tr>
                             </thead>
                             <tbody>
                             {orders.map((order, index) => (
                                 <tr key={order.id}>
                                     <td>{index + 1}</td>
-                                    <td>{new Date(order.date).toLocaleDateString()}</td>
-                                    <td>{order.total} грн</td>
-                                    <td>{order.status}</td>
+                                    <td>{order.title}</td>  {/* Тепер використовуємо title */}
+                                    <td>{order.quantity}</td>
+                                    <td>{order.product_price} грн</td>  {/* Якщо додали product_price у запит */}
+                                    <td>{order.total_price} грн</td>
+                                    <td>{order.date}</td>
                                 </tr>
                             ))}
                             </tbody>
+
                         </table>
                     ) : (
                         <p>У вас ще немає замовлень.</p>

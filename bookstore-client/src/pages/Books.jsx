@@ -8,6 +8,7 @@ function Books() {
     const [flippedId, setFlippedId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOption, setSortOption] = useState('');
+    const [userId, setUserId] = useState(null); // Додано для збереження ідентифікатора користувача
 
     useEffect(() => {
         axios.get('http://localhost:5000/api/products')
@@ -41,6 +42,45 @@ function Books() {
     const handleFlip = (id) => {
         setFlippedId(prevId => (prevId === id ? null : id));
     };
+
+
+    const handleBuy = async (productId, quantity, totalPrice) => {
+        const token = localStorage.getItem('token'); // Отримуємо токен користувача
+
+        if (!token) {
+            alert('Ви не авторизовані!');
+            return;
+        }
+
+        try {
+            const response = await axios.post(
+                'http://localhost:5000/api/orders',
+                {
+                    productId,
+                    quantity,
+                    totalPrice
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+            console.log('Order created:', response.data);
+            alert('Замовлення успішно оформлено!');
+        } catch (error) {
+            console.error('Error creating order:', error);
+            if (error.response) {
+                console.error('Response error:', error.response.data);
+                alert(`Помилка: ${error.response.data.error}`);
+            } else {
+                alert('Помилка при оформленні замовлення');
+            }
+        }
+    };
+
+
+
 
     return (
         <div className="books-container">
@@ -86,7 +126,10 @@ function Books() {
                                     <p><strong>Ціна: {product.price} грн</strong></p>
                                     <button
                                         className="btn-buy"
-                                        onClick={(e) => e.stopPropagation()}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleBuy(product.id, 1, product.price);
+                                        }}
                                     >
                                         Купити
                                     </button>

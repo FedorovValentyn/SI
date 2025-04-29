@@ -1,36 +1,31 @@
 import express from 'express';
-import { exec } from 'child_process';  // Use ES import for 'exec'
+import { exec } from 'child_process';
 import cors from 'cors';
 import mysql from 'mysql2/promise';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import Joi from 'joi';
 
-const __dirname = path.resolve(); // This still works as path is an ES module-friendly import
+dotenv.config(); // Завантажуємо змінні середовища з .env файлу
+
+const __dirname = path.resolve();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Підключення до бази даних MySQL
 const pool = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: 'Valik25122005!',
+    password: process.env.DB_PASSWORD || 'Valik25122005!',
     database: 'bookstore'
 });
 
-app.get('/api/products', async (req, res) => {
-    try {
-        const [rows] = await pool.query('SELECT id, title,description, subtitle, authors, categories, published_year, thumbnail, price FROM products');
-        res.json(rows);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Помилка сервера');
-    }
-});
-
-
-app.get('/api/orders', async (req, res) => {
+// Мідлвар для перевірки токену авторизації
+const verifyToken = (req, res, next) => {
     const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
 
     if (!token) {
@@ -38,96 +33,110 @@ app.get('/api/orders', async (req, res) => {
     }
 
     try {
-        // Декодуємо токен для отримання ID користувача
-        const decoded = jwt.verify(token, 'your_secret_key');
-        const userId = decoded.id;
+        // Перевірка токену з використанням секретного ключа
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; // Зберігаємо інформацію про користувача в запиті
+        next(); // Йдемо до наступного обробника
+    } catch (error) {
+        console.error('JWT Error:', error);
 
-        // Отримуємо замовлення користувача разом із продуктами
-        const [orders] = await pool.query(
-            `SELECT 
-                o.id AS orderId, 
-                o.order_date AS orderDate, 
-                o.status AS orderStatus, 
-                o.total_price AS totalPrice,
-                p.title AS productName,
-                p.price AS productPrice,
-                op.quantity AS productQuantity
-             FROM orders o
-             JOIN order_products op ON o.id = op.order_id
-             JOIN products p ON op.product_id = p.id
-             WHERE o.user_id = ?
-             ORDER BY o.order_date DESC`,
-            [userId]
+        if (error instanceof jwt.JsonWebTokenError) {
+            return res.status(400).json({ error: 'Invalid token signature' });
+        } else if (error instanceof jwt.TokenExpiredError) {
+            return res.status(401).json({ error: 'Token has expired' });
+        }
+
+        return res.status(400).json({ error: 'Invalid token' });
+    }
+};
+
+// Валідація замовлення за допомогою Joi
+const orderSchema = Joi.object({
+    productId: Joi.number().required(),
+    quantity: Joi.number().required(),
+    totalPrice: Joi.number().required(),
+});
+
+// Отримання списку продуктів
+app.get('/api/products', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT id, title, description, subtitle, authors, categories, published_year, thumbnail, price FROM products');
+        res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Помилка сервера');
+    }
+});
+
+// Створення замовлення
+app.post('/api/orders', verifyToken, async (req, res) => {
+    const { error } = orderSchema.validate(req.body);
+    if (error) {
+        return res.status(400).json({ error: error.details[0].message });
+    }
+
+    const { productId, quantity, totalPrice } = req.body;
+    const userId = req.user.id;
+
+    try {
+        const [product] = await pool.query('SELECT * FROM products WHERE id = ?', [productId]);
+        if (product.length === 0) {
+            return res.status(400).json({ error: 'Продукт не знайдено.' });
+        }
+
+        if (quantity > product[0].stock) {
+            return res.status(400).json({ error: 'Недостатньо товару на складі.' });
+        }
+
+        const [result] = await pool.query(
+            `INSERT INTO orders (user_id, product_id, quantity, total_price)
+             VALUES (?, ?, ?, ?)`,
+            [userId, productId, quantity, totalPrice]
         );
 
-        if (!orders.length) {
-            return res.status(200).json([]);
+        await pool.query(
+            `UPDATE products SET stock = stock - ? WHERE id = ?`,
+            [quantity, productId]
+        );
+
+        res.status(201).json({ message: 'Замовлення успішно створено!', orderId: result.insertId });
+    } catch (error) {
+        console.error('Помилка при створенні замовлення:', error);
+        res.status(500).json({ error: 'Помилка сервера при створенні замовлення.' });
+    }
+});
+
+// Маршрут для отримання замовлень користувача
+app.get('/api/orders', verifyToken, async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        const [orders] = await pool.query(`
+            SELECT
+                o.id,
+                o.quantity,
+                (o.quantity * p.price) AS total_price,
+                o.status,
+                DATE_FORMAT(o.order_date, '%Y-%m-%d') AS date,
+                p.title, 
+                p.price AS product_price
+            FROM orders o
+                JOIN products p ON o.product_id = p.id
+            WHERE o.user_id = ?
+        `, [userId]);
+
+        if (orders.length === 0) {
+            return res.status(404).json({ error: "No orders found" });
         }
 
-        // Форматуємо дані для відповіді
-        const formattedOrders = orders.reduce((acc, order) => {
-            const existingOrder = acc.find(o => o.orderId === order.orderId);
-            const productDetails = {
-                productName: order.productName,
-                productPrice: order.productPrice,
-                productQuantity: order.productQuantity,
-            };
-
-            if (existingOrder) {
-                existingOrder.products.push(productDetails);
-            } else {
-                acc.push({
-                    orderId: order.orderId,
-                    orderDate: order.orderDate,
-                    orderStatus: order.orderStatus,
-                    totalPrice: order.totalPrice,
-                    products: [productDetails],
-                });
-            }
-
-            return acc;
-        }, []);
-
-        res.json(formattedOrders);
+        res.json(orders);
     } catch (error) {
         console.error('Error in /api/orders:', error);
-        if (error.name === 'JsonWebTokenError') {
-            return res.status(400).json({ error: 'Invalid token' });
-        }
-        res.status(500).json({ error: "Internal server error" });
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-
-app.post('/api/recommend', (req, res) => {
-    const { bookName } = req.body;
-
-    if (!bookName) {
-        return res.status(400).json({ error: 'Book name is required.' });
-    }
-
-    const scriptPath = path.resolve(__dirname, 'recommend_books.py');
-    exec(`python ${path.resolve(__dirname, 'recommend_books.py')} "${bookName}"`, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Exec error: ${error}`);
-            return res.status(500).json({ error: 'Internal server error' });
-        }
-
-        if (stderr) {
-            console.error(`Stderr: ${stderr}`);
-        }
-
-        try {
-            const recommendations = JSON.parse(stdout);
-            return res.json(recommendations);
-        } catch (err) {
-            console.error('JSON parse error:', err);
-            return res.status(500).json({ error: 'Invalid response from recommendation engine.' });
-        }
-    });
-});
-
-
+// Реєстрація користувача
 app.post('/api/register', async (req, res) => {
     const { email, password, firstName, lastName, phone, address } = req.body;
 
@@ -136,7 +145,6 @@ app.post('/api/register', async (req, res) => {
     }
 
     try {
-        // Перевірка чи вже існує користувач
         const [users] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
         if (users.length > 0) {
             return res.status(400).json({ error: 'Користувач з такою поштою вже існує.' });
@@ -144,7 +152,6 @@ app.post('/api/register', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Оновлений правильний SQL запит
         await pool.query(
             `INSERT INTO users (email, password, first_name, last_name, phone_number, delivery_address)
              VALUES (?, ?, ?, ?, ?, ?)`,
@@ -158,8 +165,7 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-
-
+// Вхід користувача
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
 
@@ -181,10 +187,9 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ error: 'Невірний email або пароль.' });
         }
 
-        // Створення токена
         const token = jwt.sign(
             { id: user.id, email: user.email },
-            'your_secret_key', // потрібно винести у змінні середовища
+            process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
 
@@ -195,18 +200,12 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-app.get('/api/profile', async (req, res) => {
-    const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
-
-    if (!token) {
-        return res.status(401).json({ error: "Authorization token is missing" });
-    }
+// Профіль користувача
+app.get('/api/profile', verifyToken, async (req, res) => {
+    const userId = req.user.id;
 
     try {
-        const decoded = jwt.verify(token, 'your_secret_key'); // Ensure key matches
-        console.log('Decoded JWT:', decoded);
-
-        const [user] = await pool.query('SELECT * FROM users WHERE id = ?', [decoded.id]);
+        const [user] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
 
         if (user.length === 0) {
             return res.status(404).json({ error: "User not found" });
@@ -222,17 +221,41 @@ app.get('/api/profile', async (req, res) => {
         });
     } catch (error) {
         console.error('Error in /api/profile:', error);
-        if (error.name === 'JsonWebTokenError') {
-            return res.status(400).json({ error: 'Invalid token' });
-        }
         res.status(500).json({ error: "Internal server error" });
     }
 });
 
+// Рекомендації книг (відправлення запиту до Python скрипта)
+app.post('/api/recommend', (req, res) => {
+    const { bookName } = req.body;
 
+    if (!bookName) {
+        return res.status(400).json({ error: 'Book name is required.' });
+    }
 
+    const scriptPath = path.resolve(__dirname, 'recommend_books.py');
+    exec(`python ${scriptPath} "${bookName}"`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Exec error: ${error}`);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
 
-const PORT = 5000;  //
+        if (stderr) {
+            console.error(`Stderr: ${stderr}`);
+        }
+
+        try {
+            const recommendations = JSON.parse(stdout);
+            return res.json(recommendations);
+        } catch (err) {
+            console.error('JSON parse error:', err);
+            return res.status(500).json({ error: 'Invalid response from recommendation engine.' });
+        }
+    });
+});
+
+// Запуск сервера
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

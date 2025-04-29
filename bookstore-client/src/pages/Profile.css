@@ -1,0 +1,161 @@
+/* Загальні стилі */
+.auth-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+h1, h2, h3 {
+    color: #333;
+    text-align: center;
+}
+
+p {
+    font-size: 16px;
+    color: #555;
+    line-height: 1.6;
+}
+
+/* Повідомлення */
+.message {
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.message.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Стилі форми */
+form input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+
+form input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.submit-btn, .switch-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.submit-btn:disabled, .switch-btn:disabled {
+    background-color: #c0c0c0;
+    cursor: not-allowed;
+}
+
+.switch-btn {
+    background-color: #28a745;
+}
+
+/* Стилі для таблиці замовлень */
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.orders-table th, .orders-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.orders-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.orders-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.orders-table td {
+    font-size: 14px;
+}
+
+.logout-btn {
+    padding: 12px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.logout-btn:hover {
+    background-color: #c82333;
+}
+
+/* Стилі для контейнера профілю */
+.profile-info {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.profile-info h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.profile-info p {
+    margin: 10px 0;
+    font-size: 16px;
+}
+
+.profile-info .orders-table {
+    margin-top: 20px;
+}
+
+.profile-info .orders-table th, .profile-info .orders-table td {
+    text-align: center;
+}
+
+.profile-info .orders-table td {
+    font-size: 14px;
+}
+
+/* Адаптивність для мобільних */
+@media (max-width: 768px) {
+    .auth-container {
+        padding: 15px;
+    }
+
+    .profile-info h2 {
+        font-size: 20px;
+    }
+
+    .submit-btn, .switch-btn, .logout-btn {
+        font-size: 14px;
+    }
+}
