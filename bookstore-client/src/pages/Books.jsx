@@ -9,6 +9,10 @@ function Books() {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOption, setSortOption] = useState('');
     const [isOrdering, setIsOrdering] = useState(false);
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupProduct, setPopupProduct] = useState(null);
+    const [quantity, setQuantity] = useState(1);
+    const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
     useEffect(() => {
         axios.get('http://localhost:5000/api/products')
@@ -20,7 +24,10 @@ function Books() {
                 setProducts(formattedProducts);
                 setFilteredProducts(formattedProducts);
             })
-            .catch(error => console.error('Error loading products:', error));
+            .catch(error => {
+                console.error('Error loading products:', error);
+                showNotification('Помилка завантаження продуктів', 'error');
+            });
     }, []);
 
     useEffect(() => {
@@ -39,54 +46,60 @@ function Books() {
         setFilteredProducts(filtered);
     }, [searchTerm, sortOption, products]);
 
+    const showNotification = (message, type = 'success') => {
+        setNotification({ show: true, message, type });
+        setTimeout(() => {
+            setNotification({ ...notification, show: false });
+        }, 5000);
+    };
+
     const handleFlip = (id) => {
         setFlippedId(prevId => (prevId === id ? null : id));
     };
 
-    const handleBuy = async (productId, price) => {
+    const openPopup = (product) => {
+        setPopupProduct(product);
+        setQuantity(1);
+        setShowPopup(true);
+    };
+
+    const closePopup = () => {
+        setShowPopup(false);
+        setPopupProduct(null);
+    };
+
+    const handleOrder = async () => {
+        if (!popupProduct) return;
+
         const token = localStorage.getItem('token');
-
         if (!token) {
-            alert('Будь ласка, увійдіть в систему, щоб зробити замовлення');
+            showNotification('Будь ласка, увійдіть в систему, щоб зробити замовлення', 'error');
             return;
         }
 
-        const quantityInput = prompt('Введіть кількість:', '1');
-        if (!quantityInput) return;
-
-        const quantity = parseInt(quantityInput);
-        if (isNaN(quantity)) {
-            alert('Будь ласка, введіть коректне число');
-            return;
-        }
-
-        if (quantity < 1) {
-            alert('Мінімальна кількість - 1');
-            return;
-        }
-
-        const totalPrice = quantity * price;
+        const totalPrice = quantity * popupProduct.price;
 
         setIsOrdering(true);
         try {
             const response = await axios.post(
                 'http://localhost:5000/api/orders',
                 {
-                    productId,
+                    productId: popupProduct.id,
                     quantity,
-                    totalPrice
+                    totalPrice,
                 },
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
             );
 
-            alert(`Замовлення #${response.data.orderId} успішно оформлено!`);
+            showNotification(`Замовлення #${response.data.orderId} успішно оформлено!`);
+            closePopup();
         } catch (error) {
             console.error('Помилка при оформленні замовлення:', error);
-            alert(error.response?.data?.error || 'Сталася помилка при оформленні замовлення');
+            showNotification(error.response?.data?.error || 'Сталася помилка при оформленні замовлення', 'error');
         } finally {
             setIsOrdering(false);
         }
@@ -139,7 +152,7 @@ function Books() {
                                         disabled={isOrdering}
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handleBuy(product.id, product.price);
+                                            openPopup(product);
                                         }}
                                     >
                                         {isOrdering ? 'Обробка...' : 'Купити'}
@@ -160,6 +173,80 @@ function Books() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Модальне вікно для замовлення */}
+            {showPopup && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <div className="modal-header">
+                            <h3>Оформлення замовлення</h3>
+                            <button className="modal-close" onClick={closePopup}>
+                                &times;
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="product-info">
+                                <img src={popupProduct.thumbnail} alt={popupProduct.title} className="modal-thumbnail" />
+                                <div>
+                                    <h4>{popupProduct.title}</h4>
+                                    <p>Автор: {popupProduct.authors}</p>
+                                    <p className="price">Ціна: {popupProduct.price} грн</p>
+                                </div>
+                            </div>
+
+                            <div className="quantity-control">
+                                <label htmlFor="quantity">Кількість:</label>
+                                <input
+                                    id="quantity"
+                                    type="number"
+                                    min="1"
+                                    value={quantity}
+                                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                />
+                            </div>
+
+                            <div className="total-price">
+                                <strong>До сплати: {quantity * popupProduct.price} грн</strong>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                className="btn-confirm"
+                                onClick={handleOrder}
+                                disabled={isOrdering}
+                            >
+                                {isOrdering ? (
+                                    <>
+                                        <span className="spinner"></span>
+                                        Обробка...
+                                    </>
+                                ) : (
+                                    'Підтвердити замовлення'
+                                )}
+                            </button>
+                            <button className="btn-cancel" onClick={closePopup}>
+                                Скасувати
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Сповіщення */}
+            {notification.show && (
+                <div className={`notification ${notification.type}`}>
+                    <div className="notification-content">
+                        <span className="notification-message">{notification.message}</span>
+                        <button
+                            className="notification-close"
+                            onClick={() => setNotification({ ...notification, show: false })}
+                        >
+                            &times;
+                        </button>
+                    </div>
+                    <div className="notification-progress"></div>
                 </div>
             )}
         </div>
