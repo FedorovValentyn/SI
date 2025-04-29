@@ -5,9 +5,14 @@ import Profile from './pages/Profile';
 import Books from './pages/Books';
 import Recommendations from './pages/Recommendations';
 import './App.css';
+import { Helmet } from "react-helmet";
 
 function App() {
     return (
+        <div>
+            <Helmet>
+                <title>Bookstore App</title>
+            </Helmet>
         <Router>
             <Navbar />
             <div style={{ padding: '20px' }}>
@@ -19,6 +24,7 @@ function App() {
                 </Routes>
             </div>
         </Router>
+</div>
     );
 }
 
